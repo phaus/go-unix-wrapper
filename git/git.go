@@ -4,8 +4,7 @@ import (
 	"log"
 	"os/exec"
 	"path/filepath"
-
-	"gitlab.innoq.com/phl/forwarder/sys"
+	"github.com/phaus/go-unix-wrapper/sys"
 )
 
 var localCopy string
