@@ -10,14 +10,22 @@ import (
 	"time"
 )
 
+var paths = make(map[string]string)
+
 // GetPath gets the full path of a cli cmd.
 func GetPath(cmd string) (folder string, err error) {
-	path, err := exec.LookPath(cmd)
-	if err != nil {
-		log.Fatal(fmt.Sprintf("please install %s", cmd))
-		return "", err
+	var path string
+	if _, ok := paths[cmd]; ok {
+		path = paths[cmd]
+	} else {
+		path, err := exec.LookPath(cmd)
+		if err != nil {
+			log.Fatal(fmt.Sprintf("please install %s", cmd))
+			return "", err
+		}
+		log.Printf("%s is available at %s\n", cmd, path)
+		paths[cmd] = path
 	}
-	log.Printf("%s is available at %s\n", cmd, path)
 	return path, nil
 }
 
