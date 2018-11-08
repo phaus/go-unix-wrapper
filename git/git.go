@@ -1,24 +1,33 @@
 package git
 
 import (
+	"errors"
 	"log"
 	"os/exec"
 	"path/filepath"
+
 	"github.com/phaus/go-unix-wrapper/sys"
 )
 
-var localCopy string
-var repositoryURL string
+// Repository - a GIT Repository
+type Repository struct {
+	Name      string
+	URL       string
+	Folder    string
+	LocalCopy string
+}
 
 // Bootstrap Bootstraps a local Copy.
-func Bootstrap(repoURL string) {
-	repositoryURL = repoURL
-	localCopy, _ = createLocalCopy()
+func Bootstrap(repo Repository) Repository {
+	localCopy, err := createLocalCopy(repo)
+	if err != nil {
+		log.Println(err)
+	}
 	git, err := sys.GetPath("git")
 	if err != nil {
 		log.Println(err)
 	}
-	cmd := exec.Command(git, "clone", repositoryURL, localCopy)
+	cmd := exec.Command(git, "clone", repo.URL, repo.LocalCopy)
 	out, err := sys.RunCmd(cmd)
 	if err != nil {
 		log.Println(err)
@@ -27,7 +36,7 @@ func Bootstrap(repoURL string) {
 }
 
 // AddFile Adds a File to the Git Repository.
-func AddFile(file string) {
+func AddFile(repo Repository, file string) {
 	log.Println("addFile")
 
 	git, err := sys.GetPath("git")
@@ -36,7 +45,7 @@ func AddFile(file string) {
 	}
 
 	addCmd := exec.Command(git, "add", file)
-	addCmd.Dir = localCopy
+	addCmd.Dir = repo.LocalCopy
 	addResult, addErr := sys.RunCmd(addCmd)
 	if addErr != nil {
 		log.Println(addErr)
@@ -46,7 +55,7 @@ func AddFile(file string) {
 }
 
 // CommitBranch Commits a Branch to the Git Repository
-func CommitBranch(comment string) {
+func CommitBranch(repo Repository, comment string) {
 	log.Println("commitBranch")
 
 	git, err := sys.GetPath("git")
@@ -55,7 +64,7 @@ func CommitBranch(comment string) {
 	}
 
 	cmtCmd := exec.Command(git, "commit", "-m", comment)
-	cmtCmd.Dir = localCopy
+	cmtCmd.Dir = repo.LocalCopy
 	cmtResult, cmtErr := sys.RunCmd(cmtCmd)
 	if cmtErr != nil {
 		log.Println(cmtErr)
@@ -64,7 +73,7 @@ func CommitBranch(comment string) {
 }
 
 // CreateBranch creates a new Branch within the local Copy.
-func CreateBranch(branch string) {
+func CreateBranch(repo Repository, branch string) {
 	log.Println("CreateBranch")
 	git, err := sys.GetPath("git")
 	if err != nil {
@@ -77,7 +86,7 @@ func CreateBranch(branch string) {
 	} else {
 		cmd = exec.Command(git, "checkout", branch)
 	}
-	cmd.Dir = localCopy
+	cmd.Dir = repo.LocalCopy
 	checkoutResult, checkoutErr := sys.RunCmd(cmd)
 	if checkoutErr != nil {
 		log.Println(checkoutErr)
@@ -86,14 +95,14 @@ func CreateBranch(branch string) {
 }
 
 // PushBranch pushes the changes of that branch to the remote Repository.
-func PushBranch(branch string) {
+func PushBranch(repo Repository, branch string) {
 	log.Println("PushBranch")
 	git, err := sys.GetPath("git")
 	if err != nil {
 		log.Println(err)
 	}
 	pushCmd := exec.Command(git, "push", "-u", "origin", branch)
-	pushCmd.Dir = localCopy
+	pushCmd.Dir = repo.LocalCopy
 	pushResult, pushErr := sys.RunCmd(pushCmd)
 	if pushErr != nil {
 		log.Println(pushErr)
@@ -102,7 +111,7 @@ func PushBranch(branch string) {
 }
 
 // PullBranch pulls the changes of that branch from the remote Repository.
-func PullBranch(branch string) {
+func PullBranch(repo Repository, branch string) {
 	log.Println("PullBranch")
 	pullResult, pullErr := pullRemote(branch)
 	if pullErr != nil {
@@ -111,13 +120,13 @@ func PullBranch(branch string) {
 	log.Printf("%s\n", pullResult)
 }
 
-func pullRemote(branch string) (string, error) {
+func pullRemote(repo Repository, branch string) (string, error) {
 	git, err := sys.GetPath("git")
 	if err != nil {
 		return "", err
 	}
 	pullCmd := exec.Command(git, "pull", "origin", branch)
-	pullCmd.Dir = localCopy
+	pullCmd.Dir = repo.LocalCopy
 	pullResult, pullErr := sys.RunCmd(pullCmd)
 	if pullErr != nil {
 		return "", err
@@ -126,18 +135,18 @@ func pullRemote(branch string) (string, error) {
 	return pullResult, nil
 }
 
-// LocalCopy Return the path of the local Repository copy.
-func LocalCopy() string {
-	return localCopy
-}
-
-func createLocalCopy() (folder string, err error) {
-	cmd := exec.Command("mkdir", "-p", "data")
+func createLocalCopy(repo Repository) (string, error) {
+	if repo.Folder == "" {
+		err := errors.New("folder must be set")
+		log.Fatal(err)
+		return "", err
+	}
+	cmd := exec.Command("mkdir", "-p", repo.Folder)
 	out, err := sys.RunCmd(cmd)
 	if err != nil {
 		log.Println(err)
 		return "", err
 	}
 	log.Printf("%s\n", out)
-	return filepath.Abs("data")
+	return filepath.Abs(repo.Folder)
 }
