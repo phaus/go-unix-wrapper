@@ -21,18 +21,19 @@ type Repository struct {
 func Bootstrap(repo Repository) Repository {
 	localCopy, err := createLocalCopy(repo)
 	if err != nil {
-		log.Println(err)
+		log.Fatal(err)
 	}
 	git, err := sys.GetPath("git")
 	if err != nil {
-		log.Println(err)
+		log.Fatal(err)
 	}
 	cmd := exec.Command(git, "clone", repo.URL, repo.LocalCopy)
 	out, err := sys.RunCmd(cmd)
 	if err != nil {
-		log.Println(err)
+		log.Fatal(err)
 	}
 	log.Printf("%s\n", out)
+	repo.LocalCopy = localCopy
 	return repo
 }
 
