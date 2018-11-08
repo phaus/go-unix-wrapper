@@ -33,6 +33,7 @@ func Bootstrap(repo Repository) Repository {
 		log.Println(err)
 	}
 	log.Printf("%s\n", out)
+	return repo
 }
 
 // AddFile Adds a File to the Git Repository.
@@ -74,12 +75,12 @@ func CommitBranch(repo Repository, comment string) {
 
 // CreateBranch creates a new Branch within the local Copy.
 func CreateBranch(repo Repository, branch string) {
-	log.Println("CreateBranch")
+	log.Printf("CreateBranch %s\n", branch)
 	git, err := sys.GetPath("git")
 	if err != nil {
 		log.Println(err)
 	}
-	_, err = pullRemote(branch)
+	_, err = pullRemote(repo, branch)
 	var cmd *exec.Cmd
 	if err != nil {
 		cmd = exec.Command(git, "checkout", "-b", branch)
@@ -96,7 +97,7 @@ func CreateBranch(repo Repository, branch string) {
 
 // PushBranch pushes the changes of that branch to the remote Repository.
 func PushBranch(repo Repository, branch string) {
-	log.Println("PushBranch")
+	log.Printf("PushBranch %s\n", branch)
 	git, err := sys.GetPath("git")
 	if err != nil {
 		log.Println(err)
@@ -112,8 +113,8 @@ func PushBranch(repo Repository, branch string) {
 
 // PullBranch pulls the changes of that branch from the remote Repository.
 func PullBranch(repo Repository, branch string) {
-	log.Println("PullBranch")
-	pullResult, pullErr := pullRemote(branch)
+	log.Printf("PullBranch %s\n", branch)
+	pullResult, pullErr := pullRemote(repo, branch)
 	if pullErr != nil {
 		log.Println(pullErr)
 	}
