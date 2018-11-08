@@ -18,22 +18,23 @@ type Repository struct {
 }
 
 // Bootstrap Bootstraps a local Copy.
-func Bootstrap(repo Repository) Repository {
+func Bootstrap(argName string, argURL string, argFolder string) Repository {
+	repo := Repository{Name: argName, URL: argURL, Folder: argFolder}
 	localCopy, err := createLocalCopy(repo)
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
 	}
+	repo.LocalCopy = localCopy
 	git, err := sys.GetPath("git")
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("%s", err)
 	}
 	cmd := exec.Command(git, "clone", repo.URL, repo.LocalCopy)
 	out, err := sys.RunCmd(cmd)
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
 	}
 	log.Printf("%s\n", out)
-	repo.LocalCopy = localCopy
 	return repo
 }
 
@@ -43,7 +44,7 @@ func AddFile(repo Repository, file string) {
 
 	git, err := sys.GetPath("git")
 	if err != nil {
-		log.Println(err)
+		log.Fatalf("%s", err)
 	}
 
 	addCmd := exec.Command(git, "add", file)
@@ -62,7 +63,7 @@ func CommitBranch(repo Repository, comment string) {
 
 	git, err := sys.GetPath("git")
 	if err != nil {
-		log.Println(err)
+		log.Fatalf("%s", err)
 	}
 
 	cmtCmd := exec.Command(git, "commit", "-m", comment)
@@ -79,7 +80,7 @@ func CreateBranch(repo Repository, branch string) {
 	log.Printf("CreateBranch %s\n", branch)
 	git, err := sys.GetPath("git")
 	if err != nil {
-		log.Println(err)
+		log.Fatalf("%s", err)
 	}
 	_, err = pullRemote(repo, branch)
 	var cmd *exec.Cmd
@@ -122,6 +123,18 @@ func PullBranch(repo Repository, branch string) {
 	log.Printf("%s\n", pullResult)
 }
 
+// Cleanup - removes a localCopy of a Repository.
+func Cleanup(repo Repository) error {
+	cmd := exec.Command("rm", "-Rf", repo.LocalCopy)
+	out, err := sys.RunCmd(cmd)
+	if err != nil {
+		log.Fatalf("%s", err)
+		return err
+	}
+	log.Printf("%s", out)
+	return nil
+}
+
 func pullRemote(repo Repository, branch string) (string, error) {
 	git, err := sys.GetPath("git")
 	if err != nil {
@@ -140,15 +153,17 @@ func pullRemote(repo Repository, branch string) (string, error) {
 func createLocalCopy(repo Repository) (string, error) {
 	if repo.Folder == "" {
 		err := errors.New("folder must be set")
-		log.Fatal(err)
+		log.Fatalf("%s", err)
 		return "", err
 	}
 	cmd := exec.Command("mkdir", "-p", repo.Folder)
 	out, err := sys.RunCmd(cmd)
 	if err != nil {
-		log.Println(err)
+		log.Fatalf("%s", err)
 		return "", err
 	}
-	log.Printf("%s\n", out)
-	return filepath.Abs(repo.Folder)
+	log.Printf("%s", out)
+	localCopy, _ := filepath.Abs(repo.Folder)
+	log.Printf("Crated localCopy: %s", localCopy)
+	return localCopy, nil
 }

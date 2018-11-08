@@ -14,23 +14,24 @@ var paths = make(map[string]string)
 
 // GetPath gets the full path of a cli cmd.
 func GetPath(cmd string) (folder string, err error) {
-	var path string
 	if _, ok := paths[cmd]; ok {
-		path = paths[cmd]
-	} else {
-		path, err := exec.LookPath(cmd)
-		if err != nil {
-			log.Fatal(fmt.Sprintf("please install %s", cmd))
-			return "", err
-		}
-		log.Printf("%s is available at %s\n", cmd, path)
-		paths[cmd] = path
+		return paths[cmd], nil
 	}
-	return path, nil
+
+	path, err := exec.LookPath(cmd)
+	if err != nil {
+		log.Fatalf("please install %s", cmd)
+		return "", err
+	}
+	log.Printf("%s is available at %s\n", cmd, path)
+	paths[cmd] = path
+	return paths[cmd], nil
+
 }
 
 // RunCmd runs a cmd.
 func RunCmd(cmd *exec.Cmd) (result string, err error) {
+	log.Printf("running cmd: %s", cmd.Args)
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
 		log.Println(err)
