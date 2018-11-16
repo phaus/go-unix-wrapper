@@ -7,6 +7,9 @@ import (
 )
 
 func TestBootstrap(t *testing.T) {
-	repo := git.Bootstrap("go-unix-wrapper", "https://github.com/phaus/go-unix-wrapper.git", "data/go-unix-wrapper")
+	repo, err := git.Bootstrap("go-unix-wrapper", "https://github.com/phaus/go-unix-wrapper.git", "data/go-unix-wrapper")
+	if err != nil {
+		t.Fatalf("%s", err)
+	}
 	git.Cleanup(repo)
 }

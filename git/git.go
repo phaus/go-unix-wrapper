@@ -18,69 +18,70 @@ type Repository struct {
 }
 
 // Bootstrap Bootstraps a local Copy.
-func Bootstrap(argName string, argURL string, argFolder string) Repository {
+func Bootstrap(argName string, argURL string, argFolder string) (Repository, error) {
 	repo := Repository{Name: argName, URL: argURL, Folder: argFolder}
 	localCopy, err := createLocalCopy(repo)
 	if err != nil {
-		log.Println(err)
+		return repo, err
 	}
 	repo.LocalCopy = localCopy
 	git, err := sys.GetPath("git")
 	if err != nil {
-		log.Fatalf("%s", err)
+		return repo, err
 	}
 	cmd := exec.Command(git, "clone", repo.URL, repo.LocalCopy)
 	out, err := sys.RunCmd(cmd)
 	if err != nil {
-		log.Println(err)
+		return repo, err
 	}
-	log.Printf("%s\n", out)
-	return repo
+	if out != "" {
+		log.Printf("%s\n", out)
+	}
+	return repo, nil
 }
 
 // AddFile Adds a File to the Git Repository.
-func AddFile(repo Repository, file string) {
+func AddFile(repo Repository, file string) (string, error) {
 	log.Println("addFile")
 
 	git, err := sys.GetPath("git")
 	if err != nil {
-		log.Fatalf("%s", err)
+		return "", err
 	}
 
 	addCmd := exec.Command(git, "add", file)
 	addCmd.Dir = repo.LocalCopy
 	addResult, addErr := sys.RunCmd(addCmd)
 	if addErr != nil {
-		log.Println(addErr)
+		return "", addErr
 	}
-	log.Printf("%s\n", addResult)
-
+	return addResult, nil
 }
 
 // CommitBranch Commits a Branch to the Git Repository
-func CommitBranch(repo Repository, comment string) {
+func CommitBranch(repo Repository, comment string) (string, error) {
 	log.Println("commitBranch")
 
 	git, err := sys.GetPath("git")
 	if err != nil {
-		log.Fatalf("%s", err)
+		return "", nil
 	}
 
 	cmtCmd := exec.Command(git, "commit", "-m", comment)
 	cmtCmd.Dir = repo.LocalCopy
 	cmtResult, cmtErr := sys.RunCmd(cmtCmd)
 	if cmtErr != nil {
-		log.Println(cmtErr)
+		return "", cmtErr
 	}
-	log.Printf("%s\n", cmtResult)
+	return cmtResult, nil
 }
 
 // CreateBranch creates a new Branch within the local Copy.
-func CreateBranch(repo Repository, branch string) {
+func CreateBranch(repo Repository, branch string) (string, error) {
 	log.Printf("CreateBranch %s\n", branch)
 	git, err := sys.GetPath("git")
 	if err != nil {
-		log.Fatalf("%s", err)
+		return "", err
 	}
 	_, err = pullRemote(repo, branch)
 	var cmd *exec.Cmd
@@ -92,47 +93,46 @@ func CreateBranch(repo Repository, branch string) {
 	cmd.Dir = repo.LocalCopy
 	checkoutResult, checkoutErr := sys.RunCmd(cmd)
 	if checkoutErr != nil {
-		log.Println(checkoutErr)
+		return "", checkoutErr
 	}
-	log.Printf("%s\n", checkoutResult)
+	return checkoutResult, nil
 }
 
 // PushBranch pushes the changes of that branch to the remote Repository.
-func PushBranch(repo Repository, branch string) {
+func PushBranch(repo Repository, branch string) (string, error) {
 	log.Printf("PushBranch %s\n", branch)
 	git, err := sys.GetPath("git")
 	if err != nil {
-		log.Println(err)
+		return "", err
 	}
 	pushCmd := exec.Command(git, "push", "-u", "origin", branch)
 	pushCmd.Dir = repo.LocalCopy
 	pushResult, pushErr := sys.RunCmd(pushCmd)
 	if pushErr != nil {
-		log.Println(pushErr)
+		return "", pushErr
 	}
-	log.Printf("%s\n", pushResult)
+	return pushResult, nil
 }
 
 // PullBranch pulls the changes of that branch from the remote Repository.
-func PullBranch(repo Repository, branch string) {
+func PullBranch(repo Repository, branch string) (string, error) {
 	log.Printf("PullBranch %s\n", branch)
 	pullResult, pullErr := pullRemote(repo, branch)
 	if pullErr != nil {
-		log.Println(pullErr)
+		return "", pullErr
 	}
-	log.Printf("%s\n", pullResult)
+	return pullResult, nil
 }
 
 // Cleanup - removes a localCopy of a Repository.
-func Cleanup(repo Repository) error {
+func Cleanup(repo Repository) (string, error) {
 	cmd := exec.Command("rm", "-Rf", repo.LocalCopy)
 	out, err := sys.RunCmd(cmd)
 	if err != nil {
 		log.Fatalf("%s", err)
-		return err
+		return "", err
 	}
-	log.Printf("%s", out)
-	return nil
+	return out, nil
 }
 
 func pullRemote(repo Repository, branch string) (string, error) {
@@ -146,7 +146,6 @@ func pullRemote(repo Repository, branch string) (string, error) {
 	if pullErr != nil {
 		return "", err
 	}
-	log.Printf("%s\n", pullResult)
 	return pullResult, nil
 }
 

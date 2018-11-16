@@ -47,7 +47,7 @@ func RunCmd(cmd *exec.Cmd) (result string, err error) {
 		log.Println(fmt.Sprint(err) + ": " + fmt.Sprintf("%s\n", out))
 		return "", err
 	}
-	return fmt.Sprintf("%s\n", out), nil
+	return fmt.Sprintf("%s", out), nil
 }
 
 // WriteFile writes the content in a file at filename.
