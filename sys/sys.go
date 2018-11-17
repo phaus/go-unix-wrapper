@@ -20,7 +20,6 @@ func GetPath(cmd string) (folder string, err error) {
 
 	path, err := exec.LookPath(cmd)
 	if err != nil {
-		log.Fatalf("please install %s", cmd)
 		return "", err
 	}
 	log.Printf("%s is available at %s\n", cmd, path)
@@ -34,7 +33,7 @@ func RunCmd(cmd *exec.Cmd) (result string, err error) {
 	log.Printf("running cmd: %s", cmd.Args)
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
-		log.Println(err)
+		log.Printf("%s", err)
 	}
 
 	go func() {
@@ -55,11 +54,9 @@ func WriteFile(content string, filename string) (filepath string, err error) {
 	filepath = filename
 	file, err := os.Create(filepath)
 	if err != nil {
-		log.Println(err)
 		return "", err
 	}
 	defer file.Close()
-
 	fmt.Fprintf(file, content)
 	return filepath, nil
 }
