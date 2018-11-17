@@ -1,7 +1,9 @@
 package git
 
 import (
+	"bytes"
 	"errors"
+	"fmt"
 	"log"
 	"os/exec"
 	"path/filepath"
@@ -25,6 +27,7 @@ func Bootstrap(argName string, argURL string, argFolder string) (Repository, err
 		return repo, err
 	}
 	repo.LocalCopy = localCopy
+	Cleanup(repo)
 	git, err := sys.GetPath("git")
 	if err != nil {
 		return repo, err
@@ -35,7 +38,7 @@ func Bootstrap(argName string, argURL string, argFolder string) (Repository, err
 		return repo, err
 	}
 	if out != "" {
-		log.Printf("%s\n", out)
+		log.Printf("%s", out)
 	}
 	return repo, nil
 }
@@ -78,24 +81,27 @@ func CommitBranch(repo Repository, comment string) (string, error) {
 
 // CreateBranch creates a new Branch within the local Copy.
 func CreateBranch(repo Repository, branch string) (string, error) {
+	var buffer bytes.Buffer
+	var out string
 	log.Printf("CreateBranch %s\n", branch)
 	git, err := sys.GetPath("git")
 	if err != nil {
 		return "", err
 	}
-	_, err = pullRemote(repo, branch)
-	var cmd *exec.Cmd
-	if err != nil {
-		cmd = exec.Command(git, "checkout", "-b", branch)
-	} else {
-		cmd = exec.Command(git, "checkout", branch)
-	}
+	cmd := exec.Command(git, "checkout", "-b", branch)
 	cmd.Dir = repo.LocalCopy
-	checkoutResult, checkoutErr := sys.RunCmd(cmd)
-	if checkoutErr != nil {
-		return "", checkoutErr
+	out, err = sys.RunCmd(cmd)
+	if out != "" {
+		buffer.WriteString(fmt.Sprintf("%s", out))
 	}
-	return checkoutResult, nil
+	out, err = resetLocalCopy(repo, branch)
+	if err != nil {
+		return "", err
+	}
+	if out != "" {
+		buffer.WriteString(fmt.Sprintf("%s", out))
+	}
+	return buffer.String(), nil
 }
 
 // PushBranch pushes the changes of that branch to the remote Repository.
@@ -129,7 +135,27 @@ func Cleanup(repo Repository) (string, error) {
 	cmd := exec.Command("rm", "-Rf", repo.LocalCopy)
 	out, err := sys.RunCmd(cmd)
 	if err != nil {
-		log.Fatalf("%s", err)
+		return "", err
+	}
+	return out, nil
+}
+
+func resetLocalCopy(repo Repository, branch string) (string, error) {
+	var out string
+	git, err := sys.GetPath("git")
+	if err != nil {
+		return "", err
+	}
+	cmd := exec.Command(git, "fetch", "origin")
+	cmd.Dir = repo.LocalCopy
+	out, err = sys.RunCmd(cmd)
+	if err != nil {
+		return "", err
+	}
+	cmd = exec.Command(git, "reset", "--hard", fmt.Sprintf("origin/%s", branch))
+	cmd.Dir = repo.LocalCopy
+	out, err = sys.RunCmd(cmd)
+	if err != nil {
 		return "", err
 	}
 	return out, nil
@@ -144,7 +170,7 @@ func pullRemote(repo Repository, branch string) (string, error) {
 	pullCmd.Dir = repo.LocalCopy
 	pullResult, pullErr := sys.RunCmd(pullCmd)
 	if pullErr != nil {
-		return "", err
+		return "", pullErr
 	}
 	return pullResult, nil
 }
@@ -152,16 +178,18 @@ func pullRemote(repo Repository, branch string) (string, error) {
 func createLocalCopy(repo Repository) (string, error) {
 	if repo.Folder == "" {
 		err := errors.New("folder must be set")
-		log.Fatalf("%s", err)
+		log.Printf("%s", err)
 		return "", err
 	}
 	cmd := exec.Command("mkdir", "-p", repo.Folder)
 	out, err := sys.RunCmd(cmd)
+	if out != "" {
+		log.Printf("%s", out)
+	}
 	if err != nil {
-		log.Fatalf("%s", err)
+		log.Printf("%s", err)
 		return "", err
 	}
-	log.Printf("%s", out)
 	localCopy, _ := filepath.Abs(repo.Folder)
 	log.Printf("Crated localCopy: %s", localCopy)
 	return localCopy, nil
