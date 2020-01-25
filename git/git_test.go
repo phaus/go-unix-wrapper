@@ -3,7 +3,7 @@ package git_test
 import (
 	"testing"
 
-	"github.com/phaus/go-unix-wrapper/git"
+	"go-unix-wrapper/git"
 )
 
 func TestBootstrap(t *testing.T) {
@@ -11,7 +11,7 @@ func TestBootstrap(t *testing.T) {
 	if err != nil {
 		t.Fatalf("%s", err)
 	}
-	git.Cleanup(repo)
+	repo.Cleanup()
 }
 
 func TestChangeBranch(t *testing.T) {
@@ -19,13 +19,13 @@ func TestChangeBranch(t *testing.T) {
 	if err != nil {
 		t.Fatalf("%s", err)
 	}
-	_, err = git.CreateBranch(repo, "master")
+	_, err = repo.CreateBranch("master")
 	if err != nil {
 		t.Fatalf("while checking out master %s", err)
 	}
-	_, err = git.CreateBranch(repo, "test")
+	_, err = repo.CreateBranch("test")
 	if err != nil {
 		t.Fatalf("while checking out test %s", err)
 	}
-	git.Cleanup(repo)
+	repo.Cleanup()
 }

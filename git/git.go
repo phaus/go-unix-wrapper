@@ -8,7 +8,7 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"github.com/phaus/go-unix-wrapper/sys"
+	"go-unix-wrapper/sys"
 )
 
 // Repository - a GIT Repository
@@ -20,14 +20,17 @@ type Repository struct {
 }
 
 // Bootstrap Bootstraps a local Copy.
-func Bootstrap(argName string, argURL string, argFolder string) (Repository, error) {
-	repo := Repository{Name: argName, URL: argURL, Folder: argFolder}
-	localCopy, err := createLocalCopy(repo)
+func Bootstrap(argName string, argURL string, argFolder string) (*Repository, error) {
+	repo := &Repository{
+		Name:   argName,
+		URL:    argURL,
+		Folder: argFolder}
+	localCopy, err := repo.createLocalCopy()
 	if err != nil {
 		return repo, err
 	}
 	repo.LocalCopy = localCopy
-	Cleanup(repo)
+	repo.Cleanup()
 	git, err := sys.GetPath("git")
 	if err != nil {
 		return repo, err
@@ -44,7 +47,7 @@ func Bootstrap(argName string, argURL string, argFolder string) (Repository, err
 }
 
 // AddFile Adds a File to the Git Repository.
-func AddFile(repo Repository, file string) (string, error) {
+func (repo *Repository) AddFile(file string) (string, error) {
 	log.Println("addFile")
 
 	git, err := sys.GetPath("git")
@@ -62,7 +65,7 @@ func AddFile(repo Repository, file string) (string, error) {
 }
 
 // CommitBranch Commits a Branch to the Git Repository
-func CommitBranch(repo Repository, comment string) (string, error) {
+func (repo *Repository) CommitBranch(comment string) (string, error) {
 	log.Println("commitBranch")
 
 	git, err := sys.GetPath("git")
@@ -80,7 +83,7 @@ func CommitBranch(repo Repository, comment string) (string, error) {
 }
 
 // CreateBranch creates a new Branch within the local Copy.
-func CreateBranch(repo Repository, branch string) (string, error) {
+func (repo *Repository) CreateBranch(branch string) (string, error) {
 	var buffer bytes.Buffer
 	var out string
 	log.Printf("CreateBranch %s\n", branch)
@@ -94,7 +97,7 @@ func CreateBranch(repo Repository, branch string) (string, error) {
 	if out != "" {
 		buffer.WriteString(fmt.Sprintf("%s", out))
 	}
-	out, err = resetLocalCopy(repo, branch)
+	out, err = repo.resetLocalCopy(branch)
 	if err != nil {
 		return "", err
 	}
@@ -105,7 +108,7 @@ func CreateBranch(repo Repository, branch string) (string, error) {
 }
 
 // PushBranch pushes the changes of that branch to the remote Repository.
-func PushBranch(repo Repository, branch string) (string, error) {
+func (repo *Repository) PushBranch(branch string) (string, error) {
 	log.Printf("PushBranch %s\n", branch)
 	git, err := sys.GetPath("git")
 	if err != nil {
@@ -121,9 +124,9 @@ func PushBranch(repo Repository, branch string) (string, error) {
 }
 
 // PullBranch pulls the changes of that branch from the remote Repository.
-func PullBranch(repo Repository, branch string) (string, error) {
+func (repo *Repository) PullBranch(branch string) (string, error) {
 	log.Printf("PullBranch %s\n", branch)
-	pullResult, pullErr := pullRemote(repo, branch)
+	pullResult, pullErr := repo.pullRemote(branch)
 	if pullErr != nil {
 		return "", pullErr
 	}
@@ -131,7 +134,7 @@ func PullBranch(repo Repository, branch string) (string, error) {
 }
 
 // Cleanup - removes a localCopy of a Repository.
-func Cleanup(repo Repository) (string, error) {
+func (repo *Repository) Cleanup() (string, error) {
 	cmd := exec.Command("rm", "-Rf", repo.LocalCopy)
 	out, err := sys.RunCmd(cmd)
 	if err != nil {
@@ -140,7 +143,7 @@ func Cleanup(repo Repository) (string, error) {
 	return out, nil
 }
 
-func resetLocalCopy(repo Repository, branch string) (string, error) {
+func (repo *Repository) resetLocalCopy(branch string) (string, error) {
 	var out string
 	git, err := sys.GetPath("git")
 	if err != nil {
@@ -161,7 +164,7 @@ func resetLocalCopy(repo Repository, branch string) (string, error) {
 	return out, nil
 }
 
-func pullRemote(repo Repository, branch string) (string, error) {
+func (repo *Repository) pullRemote(branch string) (string, error) {
 	git, err := sys.GetPath("git")
 	if err != nil {
 		return "", err
@@ -175,7 +178,7 @@ func pullRemote(repo Repository, branch string) (string, error) {
 	return pullResult, nil
 }
 
-func createLocalCopy(repo Repository) (string, error) {
+func (repo *Repository) createLocalCopy() (string, error) {
 	if repo.Folder == "" {
 		err := errors.New("folder must be set")
 		log.Printf("%s", err)
