@@ -1,3 +1,3 @@
-module go-unix-wrapper
+module github.com/phaus/go-unix-wrapper
 
-go 1.13
+go 1.12
