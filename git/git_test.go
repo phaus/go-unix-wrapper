@@ -3,7 +3,7 @@ package git_test
 import (
 	"testing"
 
-	"go-unix-wrapper/git"
+	"github.com/phaus/go-unix-wrapper/git"
 )
 
 func TestBootstrap(t *testing.T) {
