@@ -8,7 +8,7 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"go-unix-wrapper/sys"
+	"github.com/phaus/go-unix-wrapper/sys"
 )
 
 // Repository - a GIT Repository
